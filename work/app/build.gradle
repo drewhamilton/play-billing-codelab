@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion Integer.valueOf(project.TARGET_SDK_VERSION)
-    buildToolsVersion project.TOOLS_VERSION
 
     defaultConfig {
         applicationId project.APP_ID
@@ -28,8 +27,8 @@ android {
 }
 
 dependencies {
-    compile "com.android.support:appcompat-v7:$project.TOOLS_VERSION"
-    compile "com.android.support:cardview-v7:$project.TOOLS_VERSION"
-    compile "com.android.support:recyclerview-v7:$project.TOOLS_VERSION"
-    compile "com.android.support:support-annotations:$project.TOOLS_VERSION"
+    implementation "com.android.support:appcompat-v7:$project.TOOLS_VERSION"
+    implementation "com.android.support:cardview-v7:$project.TOOLS_VERSION"
+    implementation "com.android.support:recyclerview-v7:$project.TOOLS_VERSION"
+    implementation "com.android.support:support-annotations:$project.TOOLS_VERSION"
 }
