@@ -28,9 +28,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.codelab.GamePlayActivity;
-import com.codelab.sample.R;
+import com.android.billingclient.api.BillingClient;
+import com.android.billingclient.api.SkuDetails;
+import com.android.billingclient.api.SkuDetailsResponseListener;
 import com.codelab.billing.BillingProvider;
+import com.codelab.sample.R;
 
 import java.util.List;
 
@@ -38,7 +40,7 @@ import java.util.List;
  * Displays a screen with various in-app purchase and subscription options
  */
 public class AcquireFragment extends DialogFragment {
-    private static final String TAG = "AcquireFragment";
+    private static final String TAG = AcquireFragment.class.getSimpleName();
 
     private RecyclerView mRecyclerView;
     private SkusAdapter mAdapter;
@@ -53,8 +55,7 @@ public class AcquireFragment extends DialogFragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.acquire_fragment, container, false);
         mErrorTextView = (TextView) root.findViewById(R.id.error_textview);
         mRecyclerView = (RecyclerView) root.findViewById(R.id.list);
@@ -111,8 +112,19 @@ public class AcquireFragment extends DialogFragment {
      * Executes query for SKU details at the background thread
      */
     private void handleManagerAndUiReady() {
-        // TODO: If Billing Manager was successfully initialized - start querying for SKUs
-        // and only otherwise display an error
+        final List<String> inAppSkus = mBillingProvider.getBillingManager().getSkus(BillingClient.SkuType.INAPP);
+        mBillingProvider.getBillingManager().querySkuDetails(BillingClient.SkuType.INAPP, inAppSkus, new SkuDetailsResponseListener() {
+            @Override
+            public void onSkuDetailsResponse(int responseCode, List<SkuDetails> skuDetailsList) {
+                if (responseCode == BillingClient.BillingResponse.OK && skuDetailsList != null) {
+                    for (SkuDetails details : skuDetailsList) {
+                        Log.i(TAG, "Got a SKU: " + details);
+                    }
+                }
+            }
+        });
+
+        // Show the UI
         displayAnErrorIfNeeded();
     }
 
