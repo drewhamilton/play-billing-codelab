@@ -33,7 +33,9 @@ import com.android.billingclient.api.SkuDetails;
 import com.android.billingclient.api.SkuDetailsResponseListener;
 import com.codelab.billing.BillingProvider;
 import com.codelab.sample.R;
+import com.codelab.skulist.row.SkuRowData;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -112,17 +114,33 @@ public class AcquireFragment extends DialogFragment {
      * Executes query for SKU details at the background thread
      */
     private void handleManagerAndUiReady() {
-        final List<String> inAppSkus = mBillingProvider.getBillingManager().getSkus(BillingClient.SkuType.INAPP);
-        mBillingProvider.getBillingManager().querySkuDetails(BillingClient.SkuType.INAPP, inAppSkus, new SkuDetailsResponseListener() {
+        final List<SkuRowData> inList = new ArrayList<>();
+        final SkuDetailsResponseListener responseListener = new SkuDetailsResponseListener() {
             @Override
-            public void onSkuDetailsResponse(int responseCode, List<SkuDetails> skuDetailsList) {
+            public void onSkuDetailsResponse(int responseCode,
+                    List<SkuDetails> skuDetailsList) {
                 if (responseCode == BillingClient.BillingResponse.OK && skuDetailsList != null) {
+                    // Repacking the result for an adapter
                     for (SkuDetails details : skuDetailsList) {
-                        Log.i(TAG, "Got a SKU: " + details);
+                        Log.i(TAG, "Found sku: " + details);
+                        inList.add(new SkuRowData(details.getSku(), details.getTitle(),
+                                details.getPrice(), details.getDescription(),
+                                details.getType()));
+                    }
+                    if (inList.size() == 0) {
+                        displayAnErrorIfNeeded();
+                    } else {
+                        mAdapter.updateData(inList);
+                        setWaitScreen(false);
                     }
                 }
             }
-        });
+        };
+
+        final List<String> inAppSkus = mBillingProvider.getBillingManager().getSkus(BillingClient.SkuType.INAPP);
+        mBillingProvider.getBillingManager().querySkuDetails(BillingClient.SkuType.INAPP, inAppSkus, responseListener);
+        final List<String> subscriptionSkus = mBillingProvider.getBillingManager().getSkus(BillingClient.SkuType.SUBS);
+        mBillingProvider.getBillingManager().querySkuDetails(BillingClient.SkuType.SUBS, subscriptionSkus, responseListener);
 
         // Show the UI
         displayAnErrorIfNeeded();
