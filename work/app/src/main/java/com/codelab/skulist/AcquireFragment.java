@@ -28,17 +28,21 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.codelab.GamePlayActivity;
-import com.codelab.sample.R;
+import com.android.billingclient.api.BillingClient;
+import com.android.billingclient.api.SkuDetails;
+import com.android.billingclient.api.SkuDetailsResponseListener;
 import com.codelab.billing.BillingProvider;
+import com.codelab.sample.R;
+import com.codelab.skulist.row.SkuRowData;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Displays a screen with various in-app purchase and subscription options
  */
 public class AcquireFragment extends DialogFragment {
-    private static final String TAG = "AcquireFragment";
+    private static final String TAG = AcquireFragment.class.getSimpleName();
 
     private RecyclerView mRecyclerView;
     private SkusAdapter mAdapter;
@@ -53,8 +57,7 @@ public class AcquireFragment extends DialogFragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.acquire_fragment, container, false);
         mErrorTextView = (TextView) root.findViewById(R.id.error_textview);
         mRecyclerView = (RecyclerView) root.findViewById(R.id.list);
@@ -111,8 +114,35 @@ public class AcquireFragment extends DialogFragment {
      * Executes query for SKU details at the background thread
      */
     private void handleManagerAndUiReady() {
-        // TODO: If Billing Manager was successfully initialized - start querying for SKUs
-        // and only otherwise display an error
+        final List<SkuRowData> inList = new ArrayList<>();
+        final SkuDetailsResponseListener responseListener = new SkuDetailsResponseListener() {
+            @Override
+            public void onSkuDetailsResponse(int responseCode,
+                    List<SkuDetails> skuDetailsList) {
+                if (responseCode == BillingClient.BillingResponse.OK && skuDetailsList != null) {
+                    // Repacking the result for an adapter
+                    for (SkuDetails details : skuDetailsList) {
+                        Log.i(TAG, "Found sku: " + details);
+                        inList.add(new SkuRowData(details.getSku(), details.getTitle(),
+                                details.getPrice(), details.getDescription(),
+                                details.getType()));
+                    }
+                    if (inList.size() == 0) {
+                        displayAnErrorIfNeeded();
+                    } else {
+                        mAdapter.updateData(inList);
+                        setWaitScreen(false);
+                    }
+                }
+            }
+        };
+
+        final List<String> inAppSkus = mBillingProvider.getBillingManager().getSkus(BillingClient.SkuType.INAPP);
+        mBillingProvider.getBillingManager().querySkuDetails(BillingClient.SkuType.INAPP, inAppSkus, responseListener);
+        final List<String> subscriptionSkus = mBillingProvider.getBillingManager().getSkus(BillingClient.SkuType.SUBS);
+        mBillingProvider.getBillingManager().querySkuDetails(BillingClient.SkuType.SUBS, subscriptionSkus, responseListener);
+
+        // Show the UI
         displayAnErrorIfNeeded();
     }
 
