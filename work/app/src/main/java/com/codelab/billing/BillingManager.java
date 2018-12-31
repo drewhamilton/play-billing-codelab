@@ -15,19 +15,53 @@
  */
 package com.codelab.billing;
 
-import android.content.Context;
+import android.app.Activity;
+import android.util.Log;
+
+import com.android.billingclient.api.BillingClient;
+import com.android.billingclient.api.BillingClientStateListener;
+import com.android.billingclient.api.Purchase;
+import com.android.billingclient.api.PurchasesUpdatedListener;
 
 import java.util.List;
 
 /**
- * TODO: Implement BillingManager that will handle all the interactions with Play Store
- * (via Billing library), maintain connection to it through BillingClient and cache
+ * BillingManager that will handle all the interactions with Play Store (via
+ * Billing library), maintain connection to it through BillingClient and cache
  * temporary states/data if needed.
  */
-public class BillingManager {
+public class BillingManager implements PurchasesUpdatedListener {
+
     private static final String TAG = "BillingManager";
 
-    public BillingManager(Context context) {
+    private final BillingClient mBillingClient;
+    private final Activity mActivity;
+
+    public BillingManager(Activity activity) {
+        mActivity = activity;
+        mBillingClient = BillingClient.newBuilder(mActivity)
+                .setListener(this)
+                .build();
+        mBillingClient.startConnection(new BillingClientStateListener() {
+            @Override
+            public void onBillingSetupFinished(@BillingClient.BillingResponse int billingResponse) {
+                if (billingResponse == BillingClient.BillingResponse.OK) {
+                    Log.i(TAG, "onBillingSetupFinished() response: " + billingResponse);
+                } else {
+                    Log.w(TAG, "onBillingSetupFinished() error code: " + billingResponse);
+                }
+            }
+
+            @Override
+            public void onBillingServiceDisconnected() {
+                Log.w(TAG, "onBillingServiceDisconnected()");
+            }
+        });
+    }
+
+    @Override
+    public void onPurchasesUpdated(@BillingClient.BillingResponse int responseCode, List<Purchase> purchases) {
+        Log.d(TAG, "onPurchasesUpdated() response: " + responseCode);
     }
 
     public void startPurchaseFlow(String skuId, String billingType) {
